@@ -1,0 +1,25 @@
+{
+  "take_id": "tk_84203080",
+  "schema_version": 1,
+  "created_at": "2026-06-11T14:59:00Z",
+  "voice_tag": "arbi-the-troll",
+  "event": {
+    "title": "Robot Vacuum Wins Local Talent Show",
+    "description": "A robot vacuum entered a small-town talent show and 'performed' by bumping into furniture in rhythm, delighting the crowd.",
+    "source_url": "https://example.com/robot-vacuum-talent-show",
+    "scout_source": "gemini-grounded"
+  },
+  "angle": "Arbi is convinced the vacuum stole HIS spotlight and demands a rematch.",
+  "line": "Arbi shoves a tiny robot vacuum aside, grabs a mic, and belts a dramatic solo while spinning in a victory circle.",
+  "visual_direction": {
+    "scene": "Arbi crashes a talent-show stage, snatches the mic from a robot vacuum, and performs.",
+    "outfit": "Sparkly silver stage jacket with oversized sequined bowtie",
+    "subject_gender": "male",
+    "keywords": [
+      "talent",
+      "spotlight",
+      "rematch",
+      "encore"
+    ]
+  }
+}

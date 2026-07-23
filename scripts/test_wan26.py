@@ -19,7 +19,7 @@ sys.path.insert(0, ROOT)
 load_dotenv(os.path.join(ROOT, ".env"))
 
 from orchestrator import resolve_character_image
-from agents.character import get_character
+from agents.character import get_character, video_style_prefix
 
 os.environ["FAL_KEY"] = os.environ.get("FAL_KEY", "")
 
@@ -56,11 +56,13 @@ def main():
     image_url = client.upload_file(square_img)
     print(f"Uploaded: {image_url[:80]}...\n")
 
-    # Visual direction comes from the BRAND slot — no baked character description.
+    # Visual direction AND art-theme come from the BRAND slot — no baked character
+    # or style. video_style_prefix() returns the slot's animation_style (fallback
+    # visual_short); the neutral motion words stay (camera/action, not brand style).
     prompt = (
-        f"Pixar 3D animation style. {char.visual_short} dances wildly on a stage, "
+        f"{video_style_prefix(char)}. {char.visual_short} dances wildly on a stage, "
         "arms flailing, jumping up and down with chaotic energy. Smooth continuous "
-        "motion, vibrant lighting, comedic physical comedy."
+        "motion, comedic physical comedy."
     )
 
     print(f"Prompt: {prompt}\n")

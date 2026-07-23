@@ -126,7 +126,7 @@ The engine itself is character-free, so you don't edit Python to swap the charac
 | **BRANDED ASSETS** | `CONTEXT_OUTRO`, `CONTEXT_MUSIC_DIR` | A branded outro clip and/or music bed — omit either to skip that step (never substitutes another brand's) |
 | **AUDIENCE** | `CONTEXT_AUDIENCE` | A doc with a `content_icp:` block — who the video is for and what it should do |
 
-Set `CABINET_CONTEXT_ROOT` to your cabinet root and the same checkout runs your character. No prompt edits — `get_character()` feeds every agent.
+Set `STUDIO_CONTEXT_ROOT` to your cabinet root and the same checkout runs your character (legacy `CABINET_CONTEXT_ROOT` still honored as a fallback for one version). No prompt edits — `get_character()` feeds every agent.
 
 ### Two optional keys: `animation_style` and `caption_style`
 
@@ -424,7 +424,7 @@ You don't edit Python — the engine is character-free. Fill your cabinet's cont
 1. **BRAND & VOICE** (`CONTEXT_BRAND`) — a doc with a fenced `character:` block: name, tagline, voice, visual identity, personality, off-limits topics, sound spec, distribution metadata.
 2. **CHARACTER IMAGE** (`CONTEXT_CHARACTER_IMAGE`) — one canonical reference PNG of your character.
 3. **BRANDED ASSETS** (`CONTEXT_OUTRO`, `CONTEXT_MUSIC_DIR`) — optional outro clip / music bed.
-4. Set `CABINET_CONTEXT_ROOT` to your cabinet root.
+4. Set `STUDIO_CONTEXT_ROOT` to your cabinet root.
 
 `get_character()` (`agents/character.py`) feeds that one source to every agent. Arbi is just instance #0's answer; another cabinet drops in its own `character:` block and the same checkout renders that character.
 
@@ -457,7 +457,7 @@ character-pipeline/
 ├── main.py                     # Entry point — full run, --resume, --upload, take/render/publish
 ├── orchestrator.py             # Pipeline runner (config, logging, agent loop, TAKE/RENDER loop)
 ├── config.py                   # Loads .env, validates API keys, declares CONTEXT_* slot vars
-├── context_root.py             # Context Layer Contract resolver (CABINET_CONTEXT_ROOT + slot map)
+├── context_root.py             # Context Layer Contract resolver (STUDIO_CONTEXT_ROOT + slot map)
 ├── dedup.py                    # Tracks processed events (avoid repeats, file-locked)
 ├── logger.py                   # Logging setup
 ├── take.py                     # Take dataclass + emit/write/load (the TAKE↔RENDER seam)

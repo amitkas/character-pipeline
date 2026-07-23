@@ -15,7 +15,8 @@ OPTIONAL_KEYS = [
     # ── Context Layer Contract (see CONTEXT.md / context_root.py) ──
     # The host cabinet root + per-slot doc overrides. All optional: unset =>
     # defaults resolve to THIS cabinet, so instance #0 runs with zero config.
-    "CABINET_CONTEXT_ROOT",     # Absolute path to the host cabinet's context root
+    "STUDIO_CONTEXT_ROOT",      # Absolute path to the host cabinet's context root
+    "CABINET_CONTEXT_ROOT",     # Legacy name, still honored as a fallback for one version
     "CONTEXT_SPINE",            # Override for the SPINE slot (default foundation/one-pager.md)
     "CONTEXT_BRAND",            # Override for the BRAND & VOICE slot (default brand/arbi-character.md)
     "CONTEXT_VOICE",            # Override for the VOICE detail slot (default brand/voice)

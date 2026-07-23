@@ -116,7 +116,7 @@ def get_character() -> Character:
     except Exception as e:
         raise CharacterError(
             f"BRAND & VOICE slot is unreadable: {path} ({e}). Point CONTEXT_BRAND / "
-            "CABINET_CONTEXT_ROOT at a doc with a fenced `character:` block, or fill that "
+            "STUDIO_CONTEXT_ROOT at a doc with a fenced `character:` block, or fill that "
             "slot. The engine ships no built-in character (CONTEXT.md §3/§5)."
         ) from e
 

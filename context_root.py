@@ -4,12 +4,13 @@ This is the seam the Context Layer Contract (see ``CONTEXT.md``) is built on. A
 product reads the host cabinet by *slot* (a role: BRAND, AUDIENCE, …), never by a
 hardcoded ``../../brand/arbi-character.md`` path. The host declares which of its
 docs fills each slot (via a per-slot env override) and where its cabinet root is
-(``CABINET_CONTEXT_ROOT``). Swap the cabinet, set the root, the runtime is
-unchanged.
+(``STUDIO_CONTEXT_ROOT``, legacy: ``CABINET_CONTEXT_ROOT`` still honored). Swap
+the cabinet, set the root, the runtime is unchanged.
 
-Default = this cabinet. When ``CABINET_CONTEXT_ROOT`` is unset, the root resolves
-to two levels above the tool dir — the behavior the code had before Part B — so
-instance #0 keeps working with zero config. The default is *depth-stable*: it
+Default = this cabinet. When neither ``STUDIO_CONTEXT_ROOT`` nor the legacy
+``CABINET_CONTEXT_ROOT`` is set, the root resolves to two levels above the tool
+dir — the behavior the code had before Part B — so instance #0 keeps working
+with zero config. The default is *depth-stable*: it
 survived the ``tools/new-arbi → products/new-arbi → products/character-pipeline`` moves
 because all three locations sit two levels under the cabinet root.
 """
@@ -33,9 +34,14 @@ _TOOL_DIR = os.path.dirname(os.path.abspath(__file__))
 def cabinet_root() -> str:
     """Absolute path to the host cabinet's context root.
 
-    ``CABINET_CONTEXT_ROOT`` if set (used as-is); otherwise the cabinet two levels
-    above this tool dir — i.e. *this* cabinet (instance #0)."""
-    override = os.environ.get("CABINET_CONTEXT_ROOT", "").strip()
+    ``STUDIO_CONTEXT_ROOT`` if set (used as-is; legacy ``CABINET_CONTEXT_ROOT``
+    still honored as a fallback for one version); otherwise the cabinet two
+    levels above this tool dir — i.e. *this* cabinet (instance #0)."""
+    override = os.environ.get("STUDIO_CONTEXT_ROOT", "").strip()
+    if not override:
+        # Legacy name, honored as a silent fallback for one version
+        # (renamed 2026-07-23, portable-context design).
+        override = os.environ.get("CABINET_CONTEXT_ROOT", "").strip()
     if override:
         return os.path.abspath(override)
     return os.path.dirname(os.path.dirname(_TOOL_DIR))

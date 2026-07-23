@@ -9,7 +9,7 @@
 
 Both engines are **recipes** — deterministic compositions of shared skills with no LLM in the locked render chain — and neither depends on the other; they both depend *down* on `studio-skills`.
 
-**Neither engine contains a character.** Who the character is, how it sounds, and what it looks like are read at runtime from the host cabinet's **context slots** (BRAND & VOICE, VOICE, CHARACTER IMAGE, AUDIENCE) through one configurable context root. Arbi Labs is just **instance #0** — the first cabinet whose slots happen to be filled in. Point the same checkout at a different `CABINET_CONTEXT_ROOT` and it runs that cabinet's character. The contract is declared in **`CONTEXT.md`** (read it before touching agent code) and resolved by `context_root.py`.
+**Neither engine contains a character.** Who the character is, how it sounds, and what it looks like are read at runtime from the host cabinet's **context slots** (BRAND & VOICE, VOICE, CHARACTER IMAGE, AUDIENCE) through one configurable context root. Arbi Labs is just **instance #0** — the first cabinet whose slots happen to be filled in. Point the same checkout at a different `STUDIO_CONTEXT_ROOT` (legacy `CABINET_CONTEXT_ROOT` still honored as a fallback for one version) and it runs that cabinet's character. The contract is declared in **`CONTEXT.md`** (read it before touching agent code) and resolved by `context_root.py`.
 
 > **The portability test that governs every line of code and docs:** *Would this survive being copied, untouched, into another business's cabinet — pointed at their context root, reading their docs?* If a line hardcodes "Arbi", "golden-yellow", "troll", or "crown" in the engine, it fails — that is host content, and it belongs in the host's BRAND & VOICE slot, not in the product. This includes render **style**: the art theme (e.g. "Pixar 3D") is not a constant either engine bakes in — it is instance #0's *value* for the BRAND & VOICE slot's optional `animation_style` key (see `CONTEXT.md` §3, §5).
 
@@ -124,7 +124,7 @@ All four agents are **thin loops over the beat's clips** — the real transform/
 | `main.py` | Entry point with CLI: `python main.py [--resume\|--upload <run_id>]` |
 | `orchestrator.py` | Pipeline runner (config, logging, agent loop, summary, auto-cleanup) |
 | `config.py` | Loads `.env`, validates required API keys; declares the `CONTEXT_*` context-slot env vars |
-| `context_root.py` | Context Layer Contract resolver — `CABINET_CONTEXT_ROOT` + slot map (see `CONTEXT.md`) |
+| `context_root.py` | Context Layer Contract resolver — `STUDIO_CONTEXT_ROOT` + slot map (see `CONTEXT.md`) |
 | `VERSION` | Engine semver (`MAJOR.MINOR.PATCH`). Paired with the `Contract-Revision: N` stamp in `CONTEXT.md` |
 | `version.py` | Fail-loud reader for `VERSION` + contract revision; logged at run start and written into every run summary |
 | `scripts/update_engine.py` | The `/update` mechanism (propagation model B): stage → reviewable diff + risk → apply (with backup) → rollback. Never touches context slots, `.env`, tokens, or `data/` |
@@ -156,7 +156,7 @@ All four agents are **thin loops over the beat's clips** — the real transform/
 main.py                   # Entry point — runs video pipeline, --resume, --upload
 orchestrator.py           # Pipeline runner with auto-cleanup
 config.py                 # Loads .env, validates API keys, declares CONTEXT_* slots
-context_root.py           # Context Layer Contract resolver (CABINET_CONTEXT_ROOT + slots)
+context_root.py           # Context Layer Contract resolver (STUDIO_CONTEXT_ROOT + slots)
 dedup.py                  # Tracks processed events (with file locking)
 logger.py                 # Logging setup
 CONTEXT.md                # The Context Layer Contract (slots, read interface, no-bake rules)
@@ -242,7 +242,7 @@ Optional:
 - `YOUTUBE_UPLOAD_ENABLED=false` (opt-out: disable auto-upload; upload is automatic when `youtube_token.json` exists)
 
 Context Layer Contract (all optional; defaults resolve to instance #0 — see `CONTEXT.md` §2–§3):
-- `CABINET_CONTEXT_ROOT` — host cabinet root; default = this cabinet
+- `STUDIO_CONTEXT_ROOT` — host cabinet root; default = this cabinet
 - `CONTEXT_SPINE`, `CONTEXT_BRAND`, `CONTEXT_VOICE`, `CONTEXT_AUDIENCE`, `CONTEXT_RELEVANCE` — per-slot doc overrides
 - `CONTEXT_CHARACTER_IMAGE` — canonical character reference PNG (alias: `ARBI_CHARACTER_IMAGE`, deprecated)
 - `CONTEXT_OUTRO`, `CONTEXT_MUSIC_DIR` — branded outro tail + music bed (absent ⇒ step skipped)

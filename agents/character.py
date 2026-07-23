@@ -13,7 +13,7 @@ character — it tells you to fill the slot (Context Layer Contract §4.5 / §5 
 the product is brand-free; the host supplies the character).
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import yaml
 
@@ -45,6 +45,15 @@ class Character:
     off_limits_topics: list
     sound: dict           # {label, voice_name, voice_id, pitch_shift, gibberish_templates, video_audio_direction}
     distribution: dict    # {title_fallback, description_suffix, hashtags, tags}
+    animation_style: str = ""   # render-style language for image/video prompts; falls back to visual_short
+    caption_style: dict = field(default_factory=dict)   # per-key caption style overrides for Engine B (font_path, font_px, weight, box_rgb, text_rgb, pad_x, pad_y, radius, line_spacing, max_width_frac, y_frac)
+
+
+def video_style_prefix(char: "Character") -> str:
+    """The render-style language for image/video prompts: the character's explicit
+    animation_style if set, else its visual_short (which carries the style words for a
+    well-formed persona spec). Never a baked literal — always from the BRAND & VOICE slot."""
+    return char.animation_style or char.visual_short
 
 
 # Fields the host's character: block MUST provide. Listed explicitly so a missing
@@ -171,6 +180,8 @@ def get_character() -> Character:
             "video_audio_direction": sound.get("video_audio_direction") or "",
         },
         distribution=distribution,
+        animation_style=str(block.get("animation_style") or "").strip(),
+        caption_style=block.get("caption_style") if isinstance(block.get("caption_style"), dict) else {},
     )
     log.debug(f"  [character] loaded '{_cache.name}' from BRAND slot ({path})")
     return _cache

@@ -4,7 +4,7 @@ from google import genai
 
 from context import PipelineContext
 from logger import get_logger, StepTimer
-from agents.character import get_character
+from agents.character import get_character, video_style_prefix
 
 log = get_logger("character_dresser")
 
@@ -16,6 +16,7 @@ def _build_dresser_prompt(outfit_description: str, scene_prompt: str) -> str:
     (see CONTEXT.md), so the same code dresses whatever character the host declares."""
     char = get_character()
     n = char.name
+    style = video_style_prefix(char)
     return (
         f"You are given a reference image of a character named {n} — {char.visual_short}.\n\n"
         f"TASK: Edit this character image to dress {n} in the following outfit: "
@@ -28,8 +29,8 @@ def _build_dresser_prompt(outfit_description: str, scene_prompt: str) -> str:
         f"- The character MUST remain {n}: {char.visual_preserve}\n"
         f"- Dress {n} in the described outfit, adapted to fit his body (comically stretched)\n"
         f"- Place {n} in a scene matching this context: {scene_prompt}\n"
-        "- Background should be a stylized Pixar 3D animated version of the scene\n"
-        "- Overall style: Pixar 3D animation, soft lighting, vibrant colors\n"
+        f"- Background should be a stylized version of the scene in this art style: {style}\n"
+        f"- Overall style: {style}\n"
         "- Square composition (1:1 aspect ratio)\n"
         f"- {n} should look mischievous and excited, like he just crashed the scene\n"
         "- Do NOT include any real humans in the image\n"
@@ -84,10 +85,11 @@ def dress_character(ctx: PipelineContext, config: dict) -> PipelineContext:
         # FALLBACK 1: character image only + simplified outfit prompt
         char = get_character()
         n = char.name
+        style = video_style_prefix(char)
         fallback_prompt = (
             f"Take this character ({char.visual_short}, named {n}) "
             f"and dress it in: {ctx.character_outfit}. "
-            f"Place it in a Pixar 3D animated scene. Square composition (1:1). "
+            f"Place it in an animated scene in this art style: {style}. Square composition (1:1). "
             f"Keep the character's appearance — {char.visual_color_guard}."
         )
         log.debug(f"Fallback prompt: {fallback_prompt}")
@@ -111,10 +113,10 @@ def dress_character(ctx: PipelineContext, config: dict) -> PipelineContext:
 
         # FALLBACK 2: pure text prompt, no input images
         text_only_prompt = (
-            f"Generate a Pixar 3D animated image of {char.visual_short}, a character named {n}. "
+            f"Generate an animated image in this art style: {style}, of {char.visual_short}, a character named {n}. "
             f"{n} is wearing: {ctx.character_outfit}. "
             "The outfit is comically stretched over his body. "
-            "Square composition (1:1). Vibrant colors, soft Pixar lighting. "
+            "Square composition (1:1). "
             f"{n} has a mischievous grin."
         )
         log.debug(f"Text-only prompt: {text_only_prompt}")

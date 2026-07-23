@@ -1,0 +1,42 @@
+{
+  "beat_id": "example_two_clip",
+  "line_ref": "Example beat — two hero-direct clips, single scene. Demonstrates a locked script_line on clip 1 (would synthesize on a full render) and a placeholder script_line on clip 2 (ships silent). Structurally modeled on a real production beat; all copy, ids, and paths below are neutral placeholders.",
+  "assembly": {
+    "vo_offset_sec": 1.3,
+    "music": {"enabled": false, "path": null, "volume": 0.24},
+    "overlays_enabled": false,
+    "subtitle_style": {
+      "font_px": 60, "weight": 800,
+      "text_rgb": [16, 17, 16], "box_rgb": [255, 255, 255],
+      "y_frac": 0.80, "max_width_frac": 0.84, "pad_x": 34, "pad_y": 20, "radius": 24, "line_spacing": 10
+    }
+  },
+  "clips": [
+    {
+      "clip_id": "example_c1_intro",
+      "aspect_ratio": "9:16",
+      "kling_duration": "10",
+      "target_duration_sec": 8,
+      "character_image": "assets/example_reference.png",
+      "animation_direction": "The character turns toward camera and gives a small confident nod, then a brief pause holding a natural, relaxed pose. Steady camera, smooth continuous motion, even lighting.",
+      "script_line": "This is an example line for the first clip.",
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "style": 0.4, "speed": 1.0},
+      "subtitles": [
+        {"text": "This is an example line", "start": 0.0, "end": 1.6},
+        {"text": "for the first clip.", "start": 1.6, "end": 3.0}
+      ]
+    },
+    {
+      "clip_id": "example_c2_punchline",
+      "aspect_ratio": "9:16",
+      "kling_duration": "10",
+      "character_image": "assets/example_reference.png",
+      "animation_direction": "The character leans slightly forward and gives a small shrug, then a brief satisfied nod. Steady camera, smooth continuous motion, even lighting.",
+      "script_line": "[PLACEHOLDER — locked copy goes here]",
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "style": 0.4, "speed": 1.0},
+      "subtitles": []
+    }
+  ]
+}

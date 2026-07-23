@@ -9,7 +9,7 @@ import xai_sdk
 
 from context import PipelineContext
 from logger import get_logger, StepTimer
-from agents.character import get_character
+from agents.character import get_character, video_style_prefix
 
 log = get_logger("video_producer_grok")
 
@@ -118,8 +118,8 @@ def produce_video(ctx: PipelineContext, config: dict) -> PipelineContext:
     audio_direction = (get_character().sound or {}).get("video_audio_direction") or DEFAULT_AUDIO_DIRECTION
 
     video_prompt = (
-        f"Pixar 3D animation style. {event_context}{animation_cue}. "
-        f"Smooth continuous motion, steady camera. Vibrant lighting. "
+        f"{video_style_prefix(get_character())}. {event_context}{animation_cue}. "
+        f"Smooth continuous motion, steady camera. "
         f"Audio: {audio_direction}"
     )
     log.debug(f"  Video prompt ({len(video_prompt)} chars): {video_prompt}")

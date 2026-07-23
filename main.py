@@ -314,7 +314,7 @@ def upload_video(run_id: str | None = None):
                 print("   python3 scripts/setup_youtube_auth.py")
 
 
-PHASE_COMMANDS = {"take", "render", "publish"}
+PHASE_COMMANDS = {"take", "render", "publish", "scripted"}
 
 
 def _parse_paths(paths_arg):
@@ -394,11 +394,43 @@ def cmd_publish(argv):
     sys.exit(0)
 
 
+def cmd_scripted(argv):
+    """Engine B — render a scripted beat (beat JSON -> M clips -> one muxed mp4).
+
+    Free gate first, then spend:
+        python3 main.py scripted beats/X.json --keyframe-only     # FREE: conform reference keyframes for review, zero spend
+        python3 main.py scripted beats/X.json                     # full render (image-to-video + voice spend)
+        python3 main.py scripted beats/X.json --clip <clip_id>    # just one clip from the beat
+        python3 main.py scripted beats/X.json --concat-preview    # after a full render, stitch a local preview mp4
+    """
+    p = argparse.ArgumentParser(prog="main.py scripted")
+    p.add_argument("beat_file", help="Path to a beat JSON spec (see docs/beat-schema.md; examples in beats/_examples/)")
+    p.add_argument("--keyframe-only", action="store_true",
+                   help="FREE gate: conform each clip's reference keyframe for review, then stop (no API spend)")
+    p.add_argument("--clip", default=None, help="Only run this one clip_id from the beat")
+    p.add_argument("--concat-preview", action="store_true",
+                   help="After a full render, stitch all clips into one local preview mp4 (pacing sanity check)")
+    args = p.parse_args(argv)
+
+    from pipelines.scripted import run
+    run(
+        args.beat_file,
+        clip_filter=args.clip,
+        keyframe_only=args.keyframe_only,
+        concat_preview=args.concat_preview,
+    )
+
+
 def main():
-    # Phase commands (take / render / publish) — checked before legacy flags so
-    # `python3 main.py` and the existing flags keep working unchanged.
+    # Phase commands (take / render / publish / scripted) — checked before legacy
+    # flags so `python3 main.py` and the existing flags keep working unchanged.
     if len(sys.argv) > 1 and sys.argv[1] in PHASE_COMMANDS:
-        {"take": cmd_take, "render": cmd_render, "publish": cmd_publish}[sys.argv[1]](sys.argv[2:])
+        {
+            "take": cmd_take,
+            "render": cmd_render,
+            "publish": cmd_publish,
+            "scripted": cmd_scripted,
+        }[sys.argv[1]](sys.argv[2:])
         return
 
     parser = argparse.ArgumentParser(

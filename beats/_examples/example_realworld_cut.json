@@ -1,0 +1,40 @@
+{
+  "beat_id": "example_realworld_cut",
+  "line_ref": "Example beat — two-scene cut, fast + punchy (5s clips). SCENE 1 is silent (script_line empty — a human scores it separately); only the SCENE 2 punchline carries VO. Documents the generic silent-first-clip / VO-on-the-punchline pattern. All copy, ids, and paths below are neutral placeholders.",
+  "assembly": {
+    "vo_offset_sec": 0.9,
+    "music": {"enabled": false, "path": null, "volume": 0.24},
+    "overlays_enabled": false,
+    "subtitle_style": {
+      "font_px": 60, "weight": 800,
+      "text_rgb": [16, 17, 16], "box_rgb": [255, 255, 255],
+      "y_frac": 0.80, "max_width_frac": 0.84, "pad_x": 34, "pad_y": 20, "radius": 24, "line_spacing": 10
+    }
+  },
+  "clips": [
+    {
+      "clip_id": "example_c1_setup",
+      "aspect_ratio": "9:16",
+      "kling_duration": "5",
+      "character_image": "assets/example_reference.png",
+      "animation_direction": "The character is absorbed in a small task, calm and focused. Then a brief reaction: a genuine, pleased little moment. Natural, believable motion, steady framing, even lighting.",
+      "script_line": "",
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "voice_settings": {"stability": 0.4, "similarity_boost": 0.75, "style": 0.6, "speed": 1.12}
+    },
+    {
+      "clip_id": "example_c2_punchline",
+      "aspect_ratio": "9:16",
+      "kling_duration": "5",
+      "character_image": "assets/example_reference.png",
+      "animation_direction": "The character gives a small confident nod and a brief knowing look toward camera. Smooth continuous motion, steady camera, even lighting.",
+      "script_line": "Here's an example punchline for the second clip.",
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "voice_settings": {"stability": 0.4, "similarity_boost": 0.75, "style": 0.6, "speed": 1.12},
+      "subtitles": [
+        {"text": "Here's an example punchline", "start": 0.0, "end": 1.6},
+        {"text": "for the second clip.", "start": 1.6, "end": 3.0}
+      ]
+    }
+  ]
+}

@@ -1,10 +1,15 @@
 # Arbi Flow
 
-A **portable, character-driven trend-to-video engine**. It finds trending real-world events and produces animated square videos of a **host-defined character** re-enacting them with physical comedy, signature sounds, and overlays. The engine ships with **no character of its own** — who the character is, how it sounds, and what it looks like are read at runtime from the host's context slots (see [`CONTEXT.md`](CONTEXT.md)). **Arbi** — the golden-yellow furry troll — is just **instance #0**, the first cabinet whose slots are filled in. Point the same checkout at a different context root and it runs that cabinet's character.
+A **portable, character-driven video engine**: one character slot, **two engines (recipes)** sharing a brand-free `studio-skills` package.
 
-**Output:** ~13-second MP4 (1:1 square, H.264, 30fps) — 10s video + 3s outro — saved locally or optionally auto-uploaded to YouTube.
+- **Engine A (Reactive)** finds trending real-world events and produces animated square videos of a **host-defined character** re-enacting them with physical comedy, signature sounds, and overlays.
+- **Engine B (Scripted)** turns a human-authored **beat JSON** (M clips, each with a reference image + visual direction + optional scripted line) into one muxed vertical mp4 — no trend-finding, no chaos angle, a free keyframe-review gate before any paid render. See [`docs/beat-schema.md`](docs/beat-schema.md).
 
-**Want to create your own character-driven trend-to-video pipeline?** See **[How to Create Your Own Arbi](docs/BUILD_YOUR_OWN_ARBI.md)** — a guide for growth marketers (organic, community, social, paid) at startups, with Arbi as the worked example.
+Both are **recipes** — deterministic compositions of shared skills with no LLM in the locked render chain — and ship with **no character of their own**: who the character is, how it sounds, and what it looks like are read at runtime from the host's context slots (see [`CONTEXT.md`](CONTEXT.md)). **Arbi** — the golden-yellow furry troll — is just **instance #0**, the first cabinet whose slots are filled in. Point the same checkout at a different context root and it runs that cabinet's character.
+
+**Output:** Engine A — ~13-second MP4 (1:1 square, H.264, 30fps) — 10s video + 3s outro — saved locally or optionally auto-uploaded to YouTube. Engine B — one muxed vertical mp4 built from the beat's clips.
+
+**Want to create your own character-driven trend-to-video pipeline?** See **[How to Create Your Own Arbi](docs/BUILD_YOUR_OWN_ARBI.md)** — a guide for growth marketers (organic, community, social, paid) at startups, with Arbi as the worked example. For authoring a character identity that stays on-model across both engines, see [`docs/character-lock.md`](docs/character-lock.md).
 
 ---
 
@@ -37,11 +42,34 @@ pip install -r requirements.txt
 cp .env.example .env
 # Open .env and fill in your keys (see "API Keys" below)
 
-# 3. Run the pipeline
+# 3. Run the pipeline (Engine A — reactive, trend-driven)
 python3 main.py                     # Full pipeline
 python3 main.py --resume <run_id>   # Resume a failed run
 python3 main.py --upload [run_id]   # Upload to YouTube (latest or specific run)
 ```
+
+**Engine B (scripted, beat-driven):**
+
+```bash
+python3 main.py scripted beats/X.json --keyframe-only   # FREE gate: conform each clip's reference keyframe, zero API spend
+python3 main.py scripted beats/X.json                    # Full render (image-to-video + voice spend)
+python3 main.py scripted beats/X.json --clip <clip_id>    # Only run one clip from the beat
+python3 main.py scripted beats/X.json --concat-preview    # After a full render, stitch a local pacing-check preview mp4
+```
+
+Author a beat against the schema in [`docs/beat-schema.md`](docs/beat-schema.md) (worked examples in `beats/_examples/`). Always run `--keyframe-only` first — it costs nothing and catches a bad reference-image path before any paid clip renders.
+
+---
+
+## Two engines, one shared skills layer
+
+Engine A and Engine B are both **recipes** — deterministic compositions of shared skills, with no LLM in the locked render chain — and neither depends on the other. Both depend **down** on [`studio-skills`](https://github.com/amitkas/studio-skills): a standalone, brand-free package of dual-face skills (a Python core, callable directly, plus a `SKILL.md` manifest and a `python3 -m ...` CLI face for each skill). It's pinned in [`requirements.txt`](requirements.txt) to `studio-skills @ git+https://github.com/amitkas/studio-skills.git@v0.1.0`.
+
+Round-1 skills used by this pipeline: `studio_skills.render.image_conform`, `studio_skills.render.kling_image_to_video`, `studio_skills.render.flux_kontext_scene_still`, `studio_skills.audio.scripted_tts`, `studio_skills.assembly.scene_assemble`, plus `studio_skills.common.ffmpeg` helpers. Engine B is built entirely on these; Engine A's Video Producer (`agents/video_producer.py`) now shares two of them (`image_conform`, `kling_image_to_video`) instead of calling fal.ai directly.
+
+**Two gotchas that live in the skills, not repeated per-caller:**
+- **Sandbox must be OFF** for fal.ai and ElevenLabs calls (both engines) — fal.ai's HTTP/2 usage and ElevenLabs' streaming both break through a sandbox proxy. See the relevant skill's `SKILL.md` (`render/kling_image_to_video`, `render/flux_kontext_scene_still`, `audio/scripted_tts`).
+- **Kling has a ~1–1.5s ease-in** at the start of a rendered clip. Engine B's beat schema accounts for this with `assembly.vo_offset_sec` (delays every clip's voice-over to clear it) — see [`docs/beat-schema.md`](docs/beat-schema.md).
 
 ---
 
@@ -77,13 +105,15 @@ The easiest path is the **`/update`** skill, which runs the stage→review→app
 
 ## How the character works
 
-The engine reads its character from the host's **BRAND & VOICE slot** — the fenced `character:` block in the doc the host maps to that slot — via `get_character()` in `agents/character.py`. Every agent reads that one source; no agent bakes a character in. The canonical reference image comes from the **CHARACTER IMAGE slot** (`CONTEXT_CHARACTER_IMAGE`, alias `ARBI_CHARACTER_IMAGE`), and the branded outro/music come from the **BRANDED ASSETS slots** (skipped if unset). See [`CONTEXT.md`](CONTEXT.md) for the full contract.
+Both engines read the character from the host's **BRAND & VOICE slot** — the fenced `character:` block in the doc the host maps to that slot — via `get_character()` in `agents/character.py`. Every agent in either engine reads that one source; no agent bakes a character in. The canonical reference image comes from the **CHARACTER IMAGE slot** (`CONTEXT_CHARACTER_IMAGE`, alias `ARBI_CHARACTER_IMAGE`), and the branded outro/music come from the **BRANDED ASSETS slots** (skipped if unset). See [`CONTEXT.md`](CONTEXT.md) for the full contract.
 
-When the pipeline finds a trending event, the character gets dressed in whatever the main person was wearing (suit, dress, jersey — you name it) and re-enacts the event with over-the-top physical comedy. Instead of narration, it makes its signature sounds (for instance #0: gibberish troll noises, maniacal laughter).
+When Engine A finds a trending event, the character gets dressed in whatever the main person was wearing (suit, dress, jersey — you name it) and re-enacts the event with over-the-top physical comedy. Instead of narration, it makes its signature sounds (for instance #0: gibberish troll noises, maniacal laughter). Engine B instead renders whatever's in the beat: each clip's own reference image and visual direction.
+
+**Render style is a slot value, not an engine constant.** Both engines read render-style/art-theme language exclusively through `video_style_prefix()` (`agents/character.py`), which returns the BRAND & VOICE slot's **optional** `animation_style` key if set, else falls back to `visual_short`. No engine file bakes a style literal.
 
 ### Meet Arbi (instance #0 — the example)
 
-Arbi is how **instance #0** fills the BRAND & VOICE slot: a wacky golden-yellow shaggy furry monster with a cream-white fluffy belly, a gold studded crown (slightly tilted), mismatched googly greenish eyes under thick brows, a small pink nose, and two tiny lower fangs on a round chubby body, rendered in Pixar 3D style — an internet troll personality, chaotic, mischievous, and hilariously unhinged (canonical asset: `arbi-king.png`). This is one cabinet's answer, not the engine — another cabinet drops in its own `character:` block.
+Arbi is how **instance #0** fills the BRAND & VOICE slot: a wacky golden-yellow shaggy furry monster with a cream-white fluffy belly, a gold studded crown (slightly tilted), mismatched googly greenish eyes under thick brows, a small pink nose, and two tiny lower fangs on a round chubby body — an internet troll personality, chaotic, mischievous, and hilariously unhinged (canonical asset: `arbi-king.png`). Instance #0 fills the slot's `animation_style` key with **"Pixar 3D style"** — that's a host-content example, not engine behavior; the engine itself carries no style literal. This is one cabinet's answer, not the engine — another cabinet drops in its own `character:` block.
 
 ### Using your own character
 
@@ -91,16 +121,25 @@ The engine itself is character-free, so you don't edit Python to swap the charac
 
 | Slot | Env var | Provide |
 |------|---------|---------|
-| **BRAND & VOICE** | `CONTEXT_BRAND` | A doc with a fenced `character:` block: name, tagline, voice, visual identity, personality, off-limits topics, sound spec, distribution metadata |
+| **BRAND & VOICE** | `CONTEXT_BRAND` | A doc with a fenced `character:` block: name, tagline, voice, visual identity, personality, off-limits topics, sound spec, distribution metadata, plus two **optional** keys — `animation_style` and `caption_style` (see below) |
 | **CHARACTER IMAGE** | `CONTEXT_CHARACTER_IMAGE` | One canonical reference PNG of your character (same pose/style works best) |
 | **BRANDED ASSETS** | `CONTEXT_OUTRO`, `CONTEXT_MUSIC_DIR` | A branded outro clip and/or music bed — omit either to skip that step (never substitutes another brand's) |
 | **AUDIENCE** | `CONTEXT_AUDIENCE` | A doc with a `content_icp:` block — who the video is for and what it should do |
 
 Set `CABINET_CONTEXT_ROOT` to your cabinet root and the same checkout runs your character. No prompt edits — `get_character()` feeds every agent.
 
+### Two optional keys: `animation_style` and `caption_style`
+
+*(Added 2026-07-23, alongside Engine B.)* Both live inside the same `character:` block as everything else in BRAND & VOICE, and both are **optional** — a slot that omits them loads exactly as it did before this pass:
+
+- **`animation_style`** (string) — the render-style/art-theme language for image/video prompts (e.g. instance #0's "Pixar 3D style"). Falls back to `visual_short` when unset. Read via `video_style_prefix()`.
+- **`caption_style`** (mapping) — Engine B's per-run caption overrides: `font_path`, `font_px`, `weight`, `box_rgb`, `text_rgb`, `pad_x`, `pad_y`, `radius`, `line_spacing`, `max_width_frac`, `y_frac`. Merge order is neutral defaults ← this slot key ← the beat's own `assembly.subtitle_style`. Unset ⇒ Engine B's neutral white-box/near-black-text default.
+
+**Because both keys are optional, `Contract-Revision` in [`CONTEXT.md`](CONTEXT.md) stays `1`** — no required slot was added. See `CONTEXT.md` §3 for the full stamp and `docs/character-lock.md` §2 for why style language belongs only in this slot (never engine code).
+
 ---
 
-## Video Pipeline (11 agents)
+## Video Pipeline — Engine A (11 agents)
 
 ```
 Video Scout → Video Finder → Video Analyzer → Creative Director →
@@ -127,6 +166,27 @@ Subtitle Burner → Outro Stitcher → YouTube Uploader (optional)
 | 11 | **YouTube Uploader** | (Optional) Uploads final video to YouTube as a public Short | YouTube Data API v3 |
 
 Each agent is a standalone Python function: `agent(ctx, config) -> ctx`. They communicate through a shared context dataclass. If any agent fails, the pipeline aborts immediately (except YouTube Uploader, which is non-fatal). **Exception:** if Video Finder cannot download any video for the chosen event, the pipeline switches to a different trending subject (up to 3 attempts) instead of failing.
+
+---
+
+## Scripted Pipeline — Engine B (4 agents)
+
+```
+Keyframe Conformer → Scripted Video Producer → Scripted Voice → Scene Assembler
+```
+
+No trend-finding, no chaos-angle agent — the human already decided what the video is by writing the beat (see [`docs/beat-schema.md`](docs/beat-schema.md)). All four agents are **thin loops over the beat's clips**: the real transform/render/synthesis/assembly work lives in `studio-skills`, and each agent's own job is resolving one slot read (character style, caption style, voice fallback) and handing explicit values to the skill. `--keyframe-only` runs step 1 only, for free; a full render runs all four.
+
+### What Each Agent Does
+
+| # | Agent | What It Does | Skill / Tool |
+|---|-------|-------------|------------|
+| 1 | **Keyframe Conformer** | Free/local/pure: center-crops + resizes each clip's reference image to its target aspect ratio. Missing/unresolvable reference image → that clip is skipped (logged), not a run-aborting error. | `studio_skills.render.image_conform` |
+| 2 | **Scripted Video Producer** | Renders each clip's conformed keyframe + prompt into an mp4. The prompt's style words come from `video_style_prefix(get_character())` (BRAND slot's `animation_style`, fallback `visual_short`) — never baked; the beat's `animation_direction` supplies motion/camera only. | `studio_skills.render.kling_image_to_video` (Kling 2.5 Turbo Pro, fal.ai) |
+| 3 | **Scripted Voice** | Synthesizes each clip's `script_line`. `voice_id` falls back to the BRAND slot's `sound.voice_id`. Deliberate cost guard: an empty or `[PLACEHOLDER...]` `script_line` refuses to spend and ships that clip silent. | `studio_skills.audio.scripted_tts` (ElevenLabs) |
+| 4 | **Scene Assembler** | Resolves caption style (neutral defaults ← BRAND slot's `caption_style` ← beat's `assembly.subtitle_style`) and host-relative asset paths, then builds each clip's segment and concats → appends outro → mixes music into one finished mp4. | `studio_skills.assembly.scene_assemble` (ffmpeg) |
+
+Each agent reads/writes a `ScriptedContext` (`context/scripted.py`): the parsed `beat`, `beat_dir`, `clip_filter`, `keyframe_only`, and per-clip artifact maps (`keyframe_paths`, `clip_video_paths`, `clip_audio_paths`) keyed by `clip_id`. A missing per-clip artifact (skipped keyframe, no rendered video) skips that clip downstream rather than aborting the whole beat.
 
 ---
 
@@ -192,6 +252,8 @@ python3 scripts/verify_take_as_artifact.py   # checks PRD §3 acceptance criteri
 ---
 
 ## How It Works
+
+*(Engine A, agent-by-agent. Engine B's four agents are documented above in "Scripted Pipeline — Engine B"; its input contract is [`docs/beat-schema.md`](docs/beat-schema.md).)*
 
 ### 1. Video Scout (`agents/video_scout.py`)
 
@@ -269,6 +331,8 @@ After that, every pipeline run will automatically upload to YouTube. To opt out,
 | `FAL_KEY` | fal.ai | Kling 2.5 Turbo Pro video generation | [fal.ai/dashboard/keys](https://fal.ai/dashboard/keys) |
 | `ELEVENLABS_API_KEY` | ElevenLabs | Character sound generation (instance #0: troll gibberish) | [elevenlabs.io](https://elevenlabs.io) |
 
+`config.py` validates all four as required at startup regardless of which engine you run. Engine B (`scripted`) only spends against `FAL_KEY` and `ELEVENLABS_API_KEY` at runtime, but `GEMINI_API_KEY` / `SERPER_API_KEY` still need to be present (even a placeholder value) for `load_config()` to pass.
+
 ### Optional (extra trend sources)
 
 | Key | Service | Get It At |
@@ -277,7 +341,7 @@ After that, every pipeline run will automatically upload to YouTube. To opt out,
 
 ---
 
-## Cost Per Run (~$0.77)
+## Cost Per Run (~$0.77) — Engine A
 
 | Service | Purpose | Cost |
 |---------|---------|------|
@@ -289,6 +353,8 @@ After that, every pipeline run will automatically upload to YouTube. To opt out,
 | ElevenLabs (eleven_v3) | Sound Engineer — signature character sound | ~$0.02 |
 | fal.ai (Kling 2.5 Turbo Pro) | Video Producer — animate the character (10s × $0.07/s) | ~$0.70 |
 | Local tools | Subtitle Burner, Outro Stitcher | $0.00 |
+
+**Engine B, per clip:** the Keyframe Conformer and Scene Assembler are local/free; the paid steps are Kling image-to-video (~$0.35–0.70/clip, depending on `kling_duration`) and ElevenLabs voice-over (cents/clip, skipped entirely for clips with no real `script_line`). `--keyframe-only` runs the whole free gate for $0.
 
 ---
 
@@ -332,9 +398,9 @@ The orchestrator reloads the run's persisted context and picks up from where it 
 
 Edit the `_build_dresser_prompt()` function in `agents/cartoonist.py`.
 
-### How do I change the animation style?
+### How do I change the animation *direction* wording (Engine A)?
 
-Edit the `SYSTEM_PROMPT` in `agents/script_writer.py`.
+Edit the prompt in `agents/script_writer.py` — this tunes how the Animation Director *writes* the physical-comedy direction, not the render style. **Don't confuse this with the `animation_style` slot key** (render-style/art-theme language, e.g. "Pixar 3D") — that's set in your BRAND & VOICE doc, never in code. See "Two optional keys" above.
 
 ### How do I change the character's voice?
 
@@ -400,26 +466,34 @@ character-pipeline/
 ├── CLAUDE.md                   # Project guide for Claude
 ├── context/
 │   ├── base.py                 # BaseContext — shared pipeline state
-│   └── video.py                # VideoContext — video-specific fields
+│   ├── video.py                # VideoContext — video-specific fields (Engine A)
+│   └── scripted.py             # ScriptedContext — beat + per-clip artifact maps (Engine B)
 ├── pipelines/
-│   ├── video.py                # Video pipeline: TAKE_AGENTS + RENDER_PATHS (fal+elevenlabs)
-│   └── video_x.py              # Grok render path (video + narration in one)
+│   ├── video.py                # Video pipeline: TAKE_AGENTS + RENDER_PATHS (fal+elevenlabs) — Engine A
+│   ├── video_x.py              # Grok render path (video + narration in one) — Engine A
+│   └── scripted.py             # Scripted pipeline: SCRIPTED_AGENTS + make_context() — Engine B
 ├── agents/
-│   ├── character.py            # Loads BRAND & VOICE slot (character: block) → get_character(); fails loud, no fallback
-│   ├── video_scout.py          # Find trending real-world event (applies slot's off-limits list)
-│   ├── video_finder.py         # Download video + extract first frame
-│   ├── video_analyzer.py       # Analyze video + detect outfit (neutral play-by-play)
-│   ├── creative_director.py    # Decide the chaos angle (after the tape is seen)
-│   ├── cartoonist.py           # Dress the character in the detected outfit
-│   ├── script_writer.py        # Write animation direction
-│   ├── take_emitter.py         # Seam agent — persists the take, ends the TAKE phase
-│   ├── video_producer.py       # Animate the character (Kling 2.5 Turbo Pro)
-│   ├── video_producer_grok.py  # Animate the character (Grok render path)
-│   ├── voice_actor.py          # Generate the character's signature sound (ElevenLabs)
-│   ├── subtitle_burner.py      # Add event title + keyword overlays
-│   ├── outro_stitcher.py       # Append host-supplied outro (skipped if no slot)
-│   └── youtube_uploader.py     # Upload to YouTube (automatic when token exists)
+│   ├── character.py            # Loads BRAND & VOICE slot (character: block) → get_character(); fails loud, no fallback; also video_style_prefix()
+│   ├── video_scout.py          # Find trending real-world event (applies slot's off-limits list) — Engine A
+│   ├── video_finder.py         # Download video + extract first frame — Engine A
+│   ├── video_analyzer.py       # Analyze video + detect outfit (neutral play-by-play) — Engine A
+│   ├── creative_director.py    # Decide the chaos angle (after the tape is seen) — Engine A
+│   ├── cartoonist.py           # Dress the character in the detected outfit — Engine A
+│   ├── script_writer.py        # Write animation direction — Engine A
+│   ├── take_emitter.py         # Seam agent — persists the take, ends the TAKE phase — Engine A
+│   ├── video_producer.py       # Animate the character (Kling 2.5 Turbo Pro; shares studio_skills.render skills) — Engine A
+│   ├── video_producer_grok.py  # Animate the character (Grok render path) — Engine A
+│   ├── voice_actor.py          # Generate the character's signature sound (ElevenLabs) — Engine A
+│   ├── subtitle_burner.py      # Add event title + keyword overlays — Engine A
+│   ├── outro_stitcher.py       # Append host-supplied outro (skipped if no slot) — Engine A
+│   ├── youtube_uploader.py     # Upload to YouTube (automatic when token exists) — Engine A
+│   ├── keyframe_conformer.py       # Free keyframe-conform gate — Engine B, step 1
+│   ├── scripted_video_producer.py  # Kling image-to-video per clip — Engine B, step 2
+│   ├── scripted_voice.py           # ElevenLabs voice-over per clip — Engine B, step 3
+│   └── scene_assembler.py          # Caption resolve + concat/outro/music — Engine B, step 4
 ├── utils/                      # Shared utilities (JSON parsing, ffmpeg/video wrappers)
+├── beats/
+│   └── _examples/              # Worked beat-JSON examples for Engine B
 ├── scripts/
 │   ├── setup_youtube_auth.py   # One-time OAuth setup for YouTube uploads
 │   ├── generate_outro.py       # Regenerate a branded outro clip
@@ -432,11 +506,15 @@ character-pipeline/
 │       ├── video-custom.md     # /video-custom skill — pin your own event
 │       └── video-x.md          # /video-x skill — Grok render path
 ├── docs/
-│   └── BUILD_YOUR_OWN_ARBI.md  # Worked example (Arbi = instance #0): build your own character pipeline
+│   ├── BUILD_YOUR_OWN_ARBI.md  # Worked example (Arbi = instance #0): build your own character pipeline
+│   ├── beat-schema.md          # Engine B's input contract
+│   └── character-lock.md       # Character-authoring canon (both engines)
 ├── artifacts/                  # Per-run working dirs (cleaned per run)
-│   ├── images/                 # Generated images
-│   ├── audio/                  # Audio files
-│   └── videos/                 # Video files
+│   ├── images/                 # Generated images — Engine A
+│   ├── audio/                  # Audio files — Engine A
+│   ├── videos/                 # Video files — Engine A
+│   ├── keyframes/{run_id}/     # Conformed keyframes from the free gate — Engine B
+│   └── scripted/{run_id}/      # Per-clip renders + assembled output — Engine B
 ├── data/
 │   ├── processed_events.json   # Dedup tracking
 │   ├── trend_cache.json        # Cached trends
@@ -447,7 +525,7 @@ character-pipeline/
 ├── .env                        # Your API keys (not committed)
 ├── .env.example                # Template
 ├── .gitignore
-└── requirements.txt
+└── requirements.txt             # incl. studio-skills @ git+https://github.com/amitkas/studio-skills.git@v0.1.0
 ```
 
 > Brand assets (the character reference PNG, branded outro, music bed) are **host-supplied through the CHARACTER IMAGE / BRANDED ASSETS slots, not bundled** in the product. Instance #0's assets (`arbi-king.png`, etc.) live in the host cabinet.
